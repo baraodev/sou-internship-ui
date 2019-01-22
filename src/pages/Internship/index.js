@@ -21,7 +21,6 @@ import {
 import api from '../../services/api';
 
 const status = [ 'Em análise', 'Deferido', 'Indeferido', 'Pendente' ];
-const type = [ 'Aproveitamento de horas', 'Incluir processo de estágio' ];
 class Internship extends Component {
 	state = {
 		process: null,
@@ -38,7 +37,7 @@ class Internship extends Component {
 		this.toggleLoading();
 		const resProcess = await api.get('/internship/process/student/10').then((res) => {
 			this.toggleLoading();
-			return res.data.process;
+			return res.data;
 		});
 
 		this.setState({
@@ -48,8 +47,7 @@ class Internship extends Component {
 
 	renderTable = () => {
 		const { match: { url } } = this.props;
-		const { process, organization } = this.state;
-		console.log(process);
+		const { process } = this.state;
 		return (
 			<Table>
 				<Head>
@@ -66,8 +64,8 @@ class Internship extends Component {
 						<Row key={item.id}>
 							<Td align="left">
 								<Type>
-									{type[item.type]}
-									<Grantor>{item.organization_id}</Grantor>
+									{item.internship_process_type.name}
+									<Grantor>{item.organization.organization_name}</Grantor>
 								</Type>
 							</Td>
 							<Td align="left">{item.created_at.replace(/^(\d{4})-(\d{2})-(\d{2}).*/, '$3/$2/$1')}</Td>

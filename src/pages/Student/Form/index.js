@@ -5,7 +5,6 @@ import LoadingScreen from 'react-loading-screen';
 import Stepper from '../../../components/Stepper';
 import StepPersonal from '../StepPersonal';
 import StepOrganization from '../StepOrganization';
-import StepDocuments from '../StepDocuments';
 import StepSummary from '../../StepSummary';
 
 import api from '../../../services/api';
@@ -13,7 +12,6 @@ import api from '../../../services/api';
 import { Container, Title, Subtitle, GroupButton, Button } from './styles';
 import PersonalData from '../../../assets/imgs/dadospessoais.svg';
 import CourseData from '../../../assets/imgs/concedente.svg';
-import Documents from '../../../assets/imgs/documentos.svg';
 import Summary from '../../../assets/imgs/resumo.svg';
 
 const stepper = [
@@ -22,12 +20,8 @@ const stepper = [
 		icon: PersonalData
 	},
 	{
-		name: 'Concedente',
+		name: 'Aproveitamento',
 		icon: CourseData
-	},
-	{
-		name: 'Documentos',
-		icon: Documents
 	},
 	{
 		name: 'Resumo',
@@ -88,34 +82,35 @@ class StudentForm extends Component {
 					complement: ''
 				}
 			},
-			organization: {
-				organization_type_id: 1,
-				document_number: '',
-				organization_name: '',
-				phone1: '',
-				phone2: '',
-				fax: '',
-				zipcode: '',
-				street: '',
-				complement: '',
-				number: '',
-				city: '',
-				state: ''
-			},
-			responsible: {
-				name: '',
-				phone: [],
-				email: ''
-			},
-			professor: {
-				name: '',
-				phone: [],
-				email: ''
-			},
-			files: {
-				work: null,
-				explotation: null,
-				activities: null
+			internship: {
+				type: 1,
+				course: '',
+				discipline: '',
+				semYear: '',
+				startDate: '',
+				endDate: '',
+				workload: 0,
+				organization: {
+					organization_type_id: 1,
+					document_number: '',
+					name: '',
+					phone1: '',
+					phone2: '',
+					fax: '',
+					zipcode: '',
+					street: '',
+					complement: '',
+					street_number: '',
+					city: '',
+					state: ''
+				},
+				documents: {
+					contract: null,
+					permit: null,
+					plan: null,
+					historic: null,
+					diploma: null
+				}
 			}
 		}
 	};
@@ -126,7 +121,6 @@ class StudentForm extends Component {
 		const { step, values } = JSON.parse(localStorage.getItem('internship_state')) || this.state;
 
 		const resPersonal = await api.get('/student/1').then((res) => res.data.studentData[0]);
-		const resProfessor = await api.get('/professor/1').then((res) => res.data.professor[0]);
 		const resOrganization = await api.get('organization').then((res) => {
 			this.toggleLoading();
 			return res.data.data;
@@ -139,12 +133,6 @@ class StudentForm extends Component {
 				...values,
 				personal: {
 					...resPersonal
-				},
-				professor: { ...resProfessor },
-				files: {
-					work: null,
-					explotation: null,
-					activities: null
 				}
 			}
 		});
@@ -187,30 +175,34 @@ class StudentForm extends Component {
 					: values.organizationSelected.id;
 			const student_id = 10;
 			const user_id = 10;
-			const internship_process_type_id = 1;
-			const internship_responsible = 1;
 
 			const internship_process_id = await api
 				.post('/internship/process', {
 					organization_id,
 					user_id,
 					student_id,
-					internship_process_type_id,
-					internship_responsible
+					internship_process_type_id: 1,
+					internship_responsible: values.responsible.name,
+					email_internship_responsible: values.responsible.email,
+					phone1: values.responsible.phone1,
+					phone2: values.responsible.phone2
 				})
 				.then((res) => res.data.process.id);
 
 			const { values: { files } } = this.state;
 			Object.keys(files).forEach((key, index) => {
 				if (!files[key]) return;
-				getBase64(files[key]).then((attachment) =>
-					api.post('/internship/document', { internship_process_id, document_type_id: index+1, attachment })
+				getBase64(files[key]).then(
+					async (attachment) =>
+						await api.post('/internship/document', {
+							internship_process_id,
+							document_type_id: index + 1,
+							attachment
+						})
 				);
 			});
-			api.post('/internship/document');
 
 			const { history } = this.props;
-
 			Alert.success('Processo enviado com sucesso', {
 				position: 'bottom-right',
 				effect: 'slide'
@@ -248,12 +240,6 @@ class StudentForm extends Component {
 				saveChanges={this.saveOnLocalStorage}
 				initialValues={values}
 				organizationOptions={organizationOptions}
-				buttons={this.renderButtons()}
-			/>,
-			<StepDocuments
-				handleSubmit={this.submit}
-				initialValues={values}
-				saveChanges={this.saveOnLocalStorage}
 				buttons={this.renderButtons()}
 			/>,
 			<StepSummary handleSubmit={this.submit} values={values} buttons={this.renderButtons()} />

@@ -1,7 +1,8 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Select from 'react-select';
+import Dropzone from 'react-dropzone';
 
 import {
 	Title,
@@ -9,16 +10,25 @@ import {
 	Row,
 	Col,
 	Label,
+	RadioLabel,
 	MyField as Field,
+	MyRadioField as RadioField,
 	MyMask as InputMask,
-	HorizontalDivider,
-	Radio,
-	Check,
-	Link,
-	Error
+	Error,
+	DragDrop,
+	Text,
+	Document,
+	Accepted,
+	Icon,
+	FileField,
+	FileError,
+	Button
 } from './styles';
 
 import cep from '../../../services/viaCep';
+
+import Upload from '../../../assets/imgs/upload.svg';
+import Success from '../../../assets/imgs/sucesso_upload.svg';
 
 const colourStyles = {
 	control: (styles) => ({ ...styles, backgroundColor: 'white' }),
@@ -64,28 +74,6 @@ class StepOrganization extends Component {
 					.min(2, 'Digite a sigla do UF')
 					.max(2, 'Digite a sigla do UF')
 					.required('O campo de UF é obrigatório')
-			}),
-			responsible: Yup.object().shape({
-				name: Yup.string()
-					.min(4, 'Nome do responsável muito pequeno')
-					.max(50, 'Nome do responsável muito grande')
-					.required('O campo Nome é obrigatório'),
-				phone: Yup.array().of(Yup.string()).compact().min(1, 'Preencha ao menos um campo de telefone'),
-				email: Yup.string()
-					.email('Preencha com um e-mail valido')
-					.max(70, 'O E-mail é muito grande')
-					.required('O campo e-mail é obrigatório')
-			}),
-			professor: Yup.object().shape({
-				name: Yup.string()
-					.min(4, 'Nome muito pequeno')
-					.max(50, 'Nome muito grande')
-					.required('O campo Nome é obrigatório'),
-				phone: Yup.array().of(Yup.string()).compact().min(1, 'Preencha ao menos um campo de telefone'),
-				email: Yup.string()
-					.email('Preencha com um e-mail valido')
-					.max(70, 'O E-mail é muito grande')
-					.required('O campo e-mail é obrigatório')
 			})
 		});
 
@@ -94,7 +82,7 @@ class StepOrganization extends Component {
 			handleSubmit,
 			organizationOptions,
 			buttons,
-			initialValues: { organizationSelected, organization, responsible, professor },
+			initialValues: { organizationSelected, internship: { type, organization, documents } },
 			saveChanges
 		} = this.props;
 
@@ -103,16 +91,40 @@ class StepOrganization extends Component {
 				onSubmit={handleSubmit}
 				validationSchema={this.getValidationSchema}
 				initialValues={{
+					type,
 					organizationSelected,
 					organization,
-					professor,
-					responsible
+					documents
 				}}
 			>
 				{({ setFieldValue, values, handleBlur }) => (
 					<Form>
-						<Title>Dados da Instituição Concedente</Title>
-						<Subtitle>Busque a empresa ou cadastre uma nova</Subtitle>
+						<Title>Dados do aproveitamento</Title>
+						<Row>
+							<Col width="70%">
+								<RadioLabel>
+									<RadioField
+										type="radio"
+										name="type"
+										onChange={() => setFieldValue('type', 1)}
+										value={values.type === 1}
+										checked={values.type === 1}
+									/>{' '}
+									Estágio já realizado em uma graduação
+								</RadioLabel>
+								<RadioLabel>
+									<RadioField
+										type="radio"
+										name="type"
+										onChange={() => setFieldValue('type', 2)}
+										value={values.type === 2}
+										checked={values.type === 2}
+									/>{' '}
+									Atuação profissional
+								</RadioLabel>
+							</Col>
+						</Row>
+						<Subtitle>Busque a instituição ou cadastre uma nova</Subtitle>
 						<Row bottom>
 							<Col>
 								<Field
@@ -311,7 +323,7 @@ class StepOrganization extends Component {
 							</Col>
 						</Row>
 						<Row>
-							<Col>
+							<Col width="40%">
 								<Label>
 									Logradouro<span>*</span>
 									<Field
@@ -326,7 +338,7 @@ class StepOrganization extends Component {
 									<ErrorMessage name="organization.street" component={Error} />
 								</Label>
 							</Col>
-							<Col width="35%">
+							<Col width="25%">
 								<Label>
 									Complemento
 									<Field
@@ -349,7 +361,7 @@ class StepOrganization extends Component {
 									<ErrorMessage name="organization.street_number" component={Error} />
 								</Label>
 							</Col>
-							<Col width="30%">
+							<Col width="18%">
 								<Label>
 									Cidade<span>*</span>
 									<Field
@@ -364,7 +376,7 @@ class StepOrganization extends Component {
 									<ErrorMessage name="organization.city" component={Error} />
 								</Label>
 							</Col>
-							<Col width="8%">
+							<Col width="10%">
 								<Label>
 									UF<span>*</span>
 									<Field
@@ -380,191 +392,271 @@ class StepOrganization extends Component {
 								</Label>
 							</Col>
 						</Row>
-						<HorizontalDivider />
-						<Row>
-							<Col>
-								<Label>
-									Professor coordenador <span>*</span>
-									<Field
-										name="professor.name"
-										onBlur={(e) => {
-											handleBlur(e);
-											saveChanges(values);
-										}}
-										disabled="true"
-									/>
-									<ErrorMessage name="professor.name" component={Error} />
-								</Label>
-							</Col>
-						</Row>
-						<Row>
-							<Col>
-								<Label>
-									Telefone 1 <span>*</span>
-									<Field
-										name="professor.phone[0]"
-										render={({ field }) => (
-											<InputMask
-												{...field}
-												mask="(99) 9999-9999?"
-												formatChars={{ '9': '[0-9]', '?': '[0-9 ]' }}
-												maskChar={null}
+						{values.type === 1 && (
+							<Fragment>
+								<Row bottom>
+									<Col width="25%">
+										<Label>
+											Curso<span>*</span>
+											<Field
+												name="course"
 												onBlur={(e) => {
-													field.onBlur(e);
-													setFieldValue(
-														field.name,
-														field.value.length > 1 ? field.value.match(/\d+/g).join('') : ''
-													);
-												}}
-												disabled="true"
-											/>
-										)}
-									/>
-									<ErrorMessage name="professor.phone" component={Error} />
-								</Label>
-							</Col>
-							<Col>
-								<Label>
-									Telefone 2
-									<Field
-										name="professor.phone[1]"
-										render={({ field }) => (
-											<InputMask
-												{...field}
-												mask="(99) 9999-9999?"
-												formatChars={{ '9': '[0-9]', '?': '[0-9 ]' }}
-												maskChar={null}
-												onBlur={(e) => {
-													field.onBlur(e);
-													setFieldValue(
-														field.name,
-														field.value.length > 1 ? field.value.match(/\d+/g).join('') : ''
-													);
-												}}
-												disabled="true"
-											/>
-										)}
-									/>
-								</Label>
-							</Col>
-							<Col>
-								<Label>
-									E-mail institucional <span>*</span>
-									<Field
-										name="professor.email"
-										onBlur={(e) => {
-											handleBlur(e);
-											saveChanges(values);
-										}}
-										disabled="true"
-									/>
-									<ErrorMessage name="professor.email" component={Error} />
-								</Label>
-							</Col>
-						</Row>
-						<HorizontalDivider />
-						<Row>
-							<Col>
-								<Label>
-									Diretor ou Coordenador responsável pela supervisão do estágio
-									<span>*</span>
-									<Field
-										name="responsible.name"
-										onBlur={(e) => {
-											handleBlur(e);
-											saveChanges(values);
-										}}
-									/>
-									<ErrorMessage name="responsible.name" component={Error} />
-								</Label>
-							</Col>
-						</Row>
-						<Row>
-							<Col>
-								<Label>
-									Telefone 1 <span>*</span>
-									<Field
-										name="responsible.phone[0]"
-										render={({ field }) => (
-											<InputMask
-												{...field}
-												mask="(99) 9999-9999?"
-												formatChars={{ '9': '[0-9]', '?': '[0-9 ]' }}
-												maskChar={null}
-												onBlur={(e) => {
-													field.onBlur(e);
-													setFieldValue(
-														field.name,
-														field.value.length > 1 ? field.value.match(/\d+/g).join('') : ''
-													);
+													handleBlur(e);
+													saveChanges(values);
 												}}
 											/>
-										)}
-									/>
-									<ErrorMessage name="responsible.phone" component={Error} />
-								</Label>
-							</Col>
-							<Col>
-								<Label>
-									Telefone 2
-									<Field
-										name="responsible.phone[1]"
-										render={({ field }) => (
-											<InputMask
-												{...field}
-												mask="(99) 9999-9999?"
-												formatChars={{ '9': '[0-9]', '?': '[0-9 ]' }}
-												maskChar={null}
+											<ErrorMessage name="course" component={Error} />
+										</Label>
+									</Col>
+									<Col width="25%">
+										<Label>
+											Nome da disciplina de estágio<span>*</span>
+											<Field
+												name="discipline"
 												onBlur={(e) => {
-													field.onBlur(e);
-													setFieldValue(
-														field.name,
-														field.value.length > 1 ? field.value.match(/\d+/g).join('') : ''
-													);
+													handleBlur(e);
+													saveChanges(values);
 												}}
 											/>
-										)}
-									/>
-								</Label>
-							</Col>
-							<Col>
-								<Label>
-									E-mail institucional <span>*</span>
-									<Field
-										name="responsible.email"
-										onBlur={(e) => {
-											handleBlur(e);
-											saveChanges(values);
-										}}
-									/>
-									<ErrorMessage name="responsible.email" component={Error} />
-								</Label>
-							</Col>
-						</Row>
-						{/* <Row>
-              <Col>
-                <Field
-                  name="agree"
-                  render={({ field }) => (
-                    <Radio
-                      type="radio"
-                      {...field}
-                      id={field.name}
-                      onChange={() => setFieldValue(field.name, true)}
-                      checked={field.value}
-                    />
-                  )}
-                />
-                <Label htmlFor="agree">
-                  <Check checked={values.agree === true} />
-                  Eu li e aceito a{' '}
-                  <Link href={Degrees} target="_blank">
-                    regulamentação de aproveitamento de estágio
-                  </Link>
-                  <ErrorMessage name="agree" component={Error} />
-                </Label>
-              </Col>
-            </Row> */}
+											<ErrorMessage name="discipline" component={Error} />
+										</Label>
+									</Col>
+									<Col width="20%">
+										<Label>
+											Carga horária da disciplina<span>*</span>
+											<Field
+												name="workload"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="workload" component={Error} />
+										</Label>
+									</Col>
+									<Col width="30%">
+										<Label>
+											Semestre/Ano de realização da disciplina<span>*</span>
+											<Field
+												name="semYear"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="semYear" component={Error} />
+										</Label>
+									</Col>
+								</Row>
+								<Row>
+									<Col>
+										<Dropzone
+											accept="image/jpeg,image/jpg,image/png,image/bmp,application/pdf"
+											onDrop={([ file, ...rest ]) => {
+												if (file) {
+													setFieldValue(
+														'documents.plan',
+														Object.assign(file, {
+															preview: URL.createObjectURL(file)
+														})
+													);
+												}
+											}}
+											multiple={false}
+										>
+											{({ getRootProps, getInputProps, error }) => (
+												<DragDrop {...getRootProps()}>
+													<Document>Plano de Ensino</Document>
+													<Text>Arraste para cá ou</Text>
+													<Icon src={values.documents.plan ? Success : Upload} />
+													<FileField {...getInputProps()} />
+													<Button>Procure no computador</Button>
+													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
+													<Accepted>Máximo: 1Mb</Accepted>
+												</DragDrop>
+											)}
+										</Dropzone>
+										<ErrorMessage name="documents.plan" component={FileError} />
+									</Col>
+									<Col>
+										<Dropzone
+											accept="image/jpeg,image/jpg,image/png,image/bmp,application/pdf"
+											onDrop={([ file, ...rest ], e) => {
+												if (file) {
+													setFieldValue(
+														'documents.historic',
+														Object.assign(file, {
+															preview: URL.createObjectURL(file)
+														})
+													);
+												}
+											}}
+											multiple={false}
+										>
+											{({ getRootProps, getInputProps }) => (
+												<DragDrop {...getRootProps()}>
+													<Document>Histórico Escolar</Document>
+													<Text>Arraste para cá ou</Text>
+													<Icon src={values.documents.historic ? Success : Upload} />
+													<FileField {...getInputProps()} />
+													<Button>Procure no computador</Button>
+													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
+													<Accepted>Máximo: 1Mb</Accepted>
+												</DragDrop>
+											)}
+										</Dropzone>
+										<ErrorMessage name="documents.historic" component={FileError} />
+									</Col>
+									<Col>
+										<Dropzone
+											accept="image/jpeg,image/jpg,image/png,image/bmp,application/pdf"
+											onDrop={([ file, ...rest ]) => {
+												if (file) {
+													setFieldValue(
+														'documents.diploma',
+														Object.assign(file, {
+															preview: URL.createObjectURL(file)
+														})
+													);
+												}
+											}}
+											multiple={false}
+										>
+											{({ getRootProps, getInputProps }) => (
+												<DragDrop {...getRootProps()}>
+													<Document>Diploma</Document>
+													<Text>Arraste para cá ou</Text>
+													<Icon src={values.documents.diploma ? Success : Upload} />
+													<FileField {...getInputProps()} />
+													<Button>Procure no computador</Button>
+													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
+													<Accepted>Máximo: 1Mb</Accepted>
+												</DragDrop>
+											)}
+										</Dropzone>
+										<ErrorMessage name="documents.diploma" component={FileError} />
+									</Col>
+								</Row>
+							</Fragment>
+						)}
+						{values.type === 2 && (
+							<Fragment>
+								<Row bottom>
+									<Col width="20%">
+										<Label>
+											Data de inicio<span>*</span>
+											<Field
+												name="course"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="course" component={Error} />
+										</Label>
+									</Col>
+									<Col width="20%">
+										<Label>
+											Data de término<span>*</span>
+											<Field
+												name="semYear"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="semYear" component={Error} />
+										</Label>
+									</Col>
+									<Col width="40%">
+										<Label>
+											Nome da disciplina de estágio<span>*</span>
+											<Field
+												name="discipline"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="discipline" component={Error} />
+										</Label>
+									</Col>
+									<Col width="20%">
+										<Label>
+											Carga horária da disciplina<span>*</span>
+											<Field
+												name="workload"
+												onBlur={(e) => {
+													handleBlur(e);
+													saveChanges(values);
+												}}
+											/>
+											<ErrorMessage name="workload" component={Error} />
+										</Label>
+									</Col>
+								</Row>
+								<Row>
+									<Col width="33%">
+										<Dropzone
+											accept="image/jpeg,image/jpg,image/png,image/bmp,application/pdf"
+											onDrop={([ file, ...rest ]) => {
+												if (file) {
+													setFieldValue(
+														'documents.contract',
+														Object.assign(file, {
+															preview: URL.createObjectURL(file)
+														})
+													);
+												}
+											}}
+											multiple={false}
+										>
+											{({ getRootProps, getInputProps, error }) => (
+												<DragDrop {...getRootProps()}>
+													<Document>Contrato de trabalho</Document>
+													<Text>Arraste para cá ou</Text>
+													<Icon src={values.documents.contract ? Success : Upload} />
+													<FileField {...getInputProps()} />
+													<Button>Procure no computador</Button>
+													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
+													<Accepted>Máximo: 1Mb</Accepted>
+												</DragDrop>
+											)}
+										</Dropzone>
+										<ErrorMessage name="documents.contract" component={FileError} />
+									</Col>
+									<Col width="33%">
+										<Dropzone
+											accept="image/jpeg,image/jpg,image/png,image/bmp,application/pdf"
+											onDrop={([ file, ...rest ], e) => {
+												if (file) {
+													setFieldValue(
+														'documents.permit',
+														Object.assign(file, {
+															preview: URL.createObjectURL(file)
+														})
+													);
+												}
+											}}
+											multiple={false}
+										>
+											{({ getRootProps, getInputProps }) => (
+												<DragDrop {...getRootProps()}>
+													<Document>Carteira de trabalho</Document>
+													<Text>Arraste para cá ou</Text>
+													<Icon src={values.documents.permit ? Success : Upload} />
+													<FileField {...getInputProps()} />
+													<Button>Procure no computador</Button>
+													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
+													<Accepted>Máximo: 1Mb</Accepted>
+												</DragDrop>
+											)}
+										</Dropzone>
+										<ErrorMessage name="documents.permit" component={FileError} />
+									</Col>
+								</Row>
+							</Fragment>
+						)}
 						{buttons}
 					</Form>
 				)}

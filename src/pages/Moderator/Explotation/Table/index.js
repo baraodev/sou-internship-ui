@@ -26,23 +26,25 @@ import SendIcon from '../../../../assets/imgs/enviar.svg';
 import SearchIcon from '../../../../assets/imgs/pesquisar.svg';
 
 class TableComponent extends Component {
-	state = {
-		tab: 0,
-		search: '',
-		process: [],
-		loading: false
-	};
+  constructor() {
+    super()
+    this.state = {
+      tab: 0,
+      search: '',
+      process: [],
+      loading: false
+    };
+  }
 
 	async componentDidMount() {
 		this.toggleLoading();
 
 		const process = await api.get(`internship/process`).then((res) => {
 			this.toggleLoading();
-			return res.data.process;
+			return res.data.processes;
 		});
 
 		this.setState({ process });
-		console.log(this.state.process);
 	}
 
 	toggleLoading = () => {
