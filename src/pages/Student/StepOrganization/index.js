@@ -41,7 +41,7 @@ const colourStyles = {
 	singleValue: (styles) => ({ ...styles })
 };
 
-const SUPPORTED_FORMATS = [ 'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'application/pdf' ];
+const SUPPORTED_FORMATS = [ 'image/jpeg', 'image/jpg', 'image/png', 'application/pdf' ];
 const FILE_SIZE = 1048576;
 
 class StepOrganization extends Component {
