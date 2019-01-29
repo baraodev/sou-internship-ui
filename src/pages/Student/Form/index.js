@@ -45,42 +45,53 @@ class StudentForm extends Component {
 		values: {
 			organizationSelected: {},
 			personal: {
-				firstName: '',
-				lastName: '',
-				assumedName: '',
-				birthDate: '',
-				gender: '',
-				countryBirth: '',
-				nationality: '',
-				race: '',
-				marital: '',
-				bloodType: '',
-				organDonor: '',
-				cellphone: '',
-				personalEmail: '',
-				professionalEmail: '',
-				documents: {
-					rg: {
-						number: '',
-						issuer: ''
-					},
+				course: [
+					{
+						id: null,
+						name: null,
+						duration_semesters: null,
+						course_type: null,
+						created_at: null,
+						updated_at: null,
+						deleted_at: null
+					}
+				],
+				student: {
+					id: null,
+					course_class_id: null,
+					countriy_id: null,
+					address_id: null,
+					city_id: null,
+					name: null,
+					last_name: null,
 					cpf: '',
-					electoralCard: '',
-					certificateReservist: ''
+					birth_date: '',
+					assumed_name: null
 				},
-				parents: {
-					motherName: '',
-					fatherName: ''
-				},
-				address: {
-					street: '',
-					number: '',
-					zip: '',
-					district: '',
-					city: '',
-					state: '',
-					complement: ''
-				}
+				address: [
+					{
+						id: null,
+						city_id: null,
+						neighborhood: null,
+						street: null,
+						street_number: null,
+						street_type: null,
+						zipcode: '',
+						street_complement: null,
+						state: null,
+						created_at: null,
+						updated_at: null,
+						deleted_at: null
+					}
+				],
+				identity: [ { id: null, issuing_entity_id: null, number: '' } ],
+				identityEmissor: [ { id: null, name: null } ],
+				mother: [ { id: null, name: null } ],
+				father: [ { id: null, name: null } ],
+				country: [ { id: null, portuguese_name: null } ],
+				city: [ { id: null, name: null } ],
+				telephone: [ { id: null, ddd: null, telephones: null } ],
+				email: [ { id: null, email: null } ]
 			},
 			internship: {
 				type: 1,
@@ -93,7 +104,7 @@ class StudentForm extends Component {
 				organization: {
 					organization_type_id: 1,
 					document_number: '',
-					name: '',
+					organization_name: '',
 					phone1: '',
 					phone2: '',
 					fax: '',
@@ -120,14 +131,14 @@ class StudentForm extends Component {
 
 		const { step, values } = JSON.parse(localStorage.getItem('internship_state')) || this.state;
 
-		const resPersonal = await api.get('/student/1').then((res) => res.data.studentData[0]);
+		const resPersonal = await api.get('/student/65536').then((res) => res.data);
 		const resOrganization = await api.get('organization').then((res) => {
 			this.toggleLoading();
 			return res.data.data;
 		});
 
 		this.setState({
-			step: Math.min(step, 2),
+			step: Math.min(step, 1),
 			organizationOptions: resOrganization,
 			values: {
 				...values,

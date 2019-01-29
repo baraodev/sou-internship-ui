@@ -41,40 +41,154 @@ const colourStyles = {
 	singleValue: (styles) => ({ ...styles })
 };
 
+const SUPPORTED_FORMATS = [ 'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'application/pdf' ];
+const FILE_SIZE = 1048576;
+
 class StepOrganization extends Component {
 	handleCep = async (e, setFieldValue) => {
 		const res = await cep.get(`${e.target.value}/json`);
 		const { logradouro: street, localidade: city, uf: state } = res.data;
 
-		setFieldValue('organization.street', street);
-		setFieldValue('organization.city', city);
-		setFieldValue('organization.state', state);
+		setFieldValue('internship.organization.street', street);
+		setFieldValue('internship.organization.city', city);
+		setFieldValue('internship.organization.state', state);
 	};
 
 	getValidationSchema = () =>
 		Yup.object().shape({
-			organization: Yup.object().shape({
-				document_number: Yup.string().required('O campo de documento é obrigatório'),
-				organization_name: Yup.string()
-					.min(4, 'Nome da instituição muito pequeno')
-					.max(80, 'Nome da instituição muito grande')
-					.required('O campo Nome é obrigatório'),
-				phone1: Yup.string().required('Preencha o campo de telefone 1'),
-				zipcode: Yup.string().required('O campo de CEP é obrigatório'),
-				street: Yup.string()
-					.min(8, 'Nome de logradouro muito pequeno')
-					.max(60, 'Nome de logradouro muito grande')
-					.required('O campo de logradouro é obrigatório'),
-				street_number: Yup.string().required('O campo de número é obrigatório'),
-				city: Yup.string()
-					.min(4, 'Nome de cidade muito pequeno')
-					.max(40, 'Nome de cidade muito grande')
-					.required('O campo de cidade é obrigatório'),
-				state: Yup.string()
-					.min(2, 'Digite a sigla do UF')
-					.max(2, 'Digite a sigla do UF')
-					.required('O campo de UF é obrigatório')
-			})
+			internship: Yup.object().shape(
+				{
+					course: Yup.string().when('type', {
+						is: 1,
+						then: Yup.required('O campo curso é obrigatório')
+					}),
+					discipline: Yup.string().when('type', {
+						is: 1,
+						then: Yup.required('O campo disciplina é obrigatório')
+					}),
+					workload: Yup.string().required('O campo carga horária é obrigatório'),
+					semYear: Yup.string().when('type', {
+						is: 1,
+						then: Yup.required('O campo semestre/ano é obrigatório')
+					}),
+					startDate: Yup.string().when('type', {
+						is: 2,
+						then: Yup.required('O campo data de início é obrigatório')
+					}),
+					endDate: Yup.string().when('type', {
+						is: 2,
+						then: Yup.required('O campo data de termíno é obrigatório')
+					}),
+					organization: Yup.object().shape({
+						document_number: Yup.string().required('O campo de documento é obrigatório'),
+						organization_name: Yup.string()
+							.min(4, 'Nome da instituição muito pequeno')
+							.max(80, 'Nome da instituição muito grande')
+							.required('O campo Nome é obrigatório'),
+						phone1: Yup.string().required('Preencha o campo de telefone 1'),
+						zipcode: Yup.string().required('O campo de CEP é obrigatório'),
+						street: Yup.string()
+							.min(8, 'Nome de logradouro muito pequeno')
+							.max(60, 'Nome de logradouro muito grande')
+							.required('O campo de logradouro é obrigatório'),
+						street_number: Yup.string().required('O campo de número é obrigatório'),
+						city: Yup.string()
+							.min(4, 'Nome de cidade muito pequeno')
+							.max(40, 'Nome de cidade muito grande')
+							.required('O campo de cidade é obrigatório'),
+						state: Yup.string()
+							.min(2, 'Digite a sigla do UF')
+							.max(2, 'Digite a sigla do UF')
+							.required('O campo de UF é obrigatório')
+					}),
+					documents: Yup.object().when('type', {
+						is: 1,
+						then: Yup.object().shape(
+							{
+								contract: Yup.mixed()
+									.test(
+										'fileSize',
+										'Tamanho do arquivo não suportado, máximo 1Mb',
+										(value) => value && value.size <= FILE_SIZE
+									)
+									.test(
+										'fileFormat',
+										'Formato não suportado',
+										(value) => value && SUPPORTED_FORMATS.includes(value.type)
+									)
+									.when('permit', (permit, schema) => {
+										return permit !== null
+											? schema
+											: schema.required(
+													'É necessário fazer upload do contrato de trabalho ou carteira de trabalho.'
+												);
+									}),
+								permit: Yup.mixed()
+									.test(
+										'fileSize',
+										'Tamanho do arquivo não suportado, máximo 1Mb',
+										(value) => value && value.size <= FILE_SIZE
+									)
+									.test(
+										'fileFormat',
+										'Formato não suportado',
+										(value) => value && SUPPORTED_FORMATS.includes(value.type)
+									)
+									.when('contract', (contract, schema) => {
+										return contract !== null
+											? schema
+											: schema.required(
+													'É necessário fazer upload do contrato de trabalho ou carteira de trabalho.'
+												);
+									})
+							},
+							[ 'permit', 'contract' ]
+						),
+						otherwise: Yup.object().shape(
+							{
+								contract: Yup.mixed()
+									.test(
+										'fileSize',
+										'Tamanho do arquivo não suportado, máximo 1Mb',
+										(value) => value && value.size <= FILE_SIZE
+									)
+									.test(
+										'fileFormat',
+										'Formato não suportado',
+										(value) => value && SUPPORTED_FORMATS.includes(value.type)
+									)
+									.when('permit', (permit, schema) => {
+										return permit !== null
+											? schema
+											: schema.isRequired(
+													'É necessário fazer upload do contrato de trabalho ou carteira de trabalho.'
+												);
+									}),
+								permit: Yup.mixed()
+									.test(
+										'fileSize',
+										'Tamanho do arquivo não suportado, máximo 1Mb',
+										(value) => value && value.size <= FILE_SIZE
+									)
+									.test(
+										'fileFormat',
+										'Formato não suportado',
+										(value) => value && SUPPORTED_FORMATS.includes(value.type)
+									)
+									.when('contract', (contract, schema) => {
+										return contract !== null
+											? schema
+											: schema.isRequired(
+													'É necessário fazer upload do contrato de trabalho ou carteira de trabalho.'
+												);
+									})
+							},
+							[ 'permit', 'contract' ]
+						)
+					})
+				},
+				'type'
+			)
 		});
 
 	render() {
@@ -82,7 +196,7 @@ class StepOrganization extends Component {
 			handleSubmit,
 			organizationOptions,
 			buttons,
-			initialValues: { organizationSelected, internship: { type, organization, documents } },
+			initialValues: { organizationSelected, internship },
 			saveChanges
 		} = this.props;
 
@@ -91,14 +205,13 @@ class StepOrganization extends Component {
 				onSubmit={handleSubmit}
 				validationSchema={this.getValidationSchema}
 				initialValues={{
-					type,
 					organizationSelected,
-					organization,
-					documents
+					internship
 				}}
 			>
 				{({ setFieldValue, values, handleBlur }) => (
 					<Form>
+						{console.log(values)}
 						<Title>Dados do aproveitamento</Title>
 						<Row>
 							<Col width="70%">
@@ -106,9 +219,9 @@ class StepOrganization extends Component {
 									<RadioField
 										type="radio"
 										name="type"
-										onChange={() => setFieldValue('type', 1)}
-										value={values.type === 1}
-										checked={values.type === 1}
+										onChange={() => setFieldValue('internship.type', 1)}
+										value={values.internship.type === 1}
+										checked={values.internship.type === 1}
 									/>{' '}
 									Estágio já realizado em uma graduação
 								</RadioLabel>
@@ -116,9 +229,9 @@ class StepOrganization extends Component {
 									<RadioField
 										type="radio"
 										name="type"
-										onChange={() => setFieldValue('type', 2)}
-										value={values.type === 2}
-										checked={values.type === 2}
+										onChange={() => setFieldValue('internship.type', 2)}
+										value={values.internship.type === 2}
+										checked={values.internship.type === 2}
 									/>{' '}
 									Atuação profissional
 								</RadioLabel>
@@ -139,16 +252,22 @@ class StepOrganization extends Component {
 											value={field.value}
 											onChange={(option) => {
 												setFieldValue(field.name, option);
-												setFieldValue('organization.document_number', option.document_number);
 												setFieldValue(
-													'organization.organization_name',
+													'internship.organization.document_number',
+													option.document_number
+												);
+												setFieldValue(
+													'internship.organization.organization_name',
 													option.organization_name
 												);
-												setFieldValue('organization.phone1', option.phone1);
-												setFieldValue('organization.phone2', option.phone2 || '');
-												setFieldValue('organization.fax', option.fax || '');
-												setFieldValue('organization.zipcode', option.zipcode);
-												setFieldValue('organization.street_number', option.street_number);
+												setFieldValue('internship.organization.phone1', option.phone1);
+												setFieldValue('internship.organization.phone2', option.phone2 || '');
+												setFieldValue('internship.organization.fax', option.fax || '');
+												setFieldValue('internship.organization.zipcode', option.zipcode);
+												setFieldValue(
+													'internship.organization.street_number',
+													option.street_number
+												);
 												const e = { target: { value: option.zipcode } };
 												this.handleCep(e, setFieldValue);
 												saveChanges(values);
@@ -175,7 +294,7 @@ class StepOrganization extends Component {
 								<Label>
 									CNPJ<span>*</span>
 									<Field
-										name="organization.document_number"
+										name="internship.organization.document_number"
 										render={({ field }) => (
 											<InputMask
 												{...field}
@@ -185,9 +304,7 @@ class StepOrganization extends Component {
 													field.onBlur(e);
 													setFieldValue(
 														field.name,
-														field.value.match(/\d+/g).length
-															? field.value.match(/\d+/g).join('')
-															: ''
+														field.value.length > 0 ? field.value.match(/\d+/g).join('') : ''
 													);
 													saveChanges(values);
 												}}
@@ -195,21 +312,21 @@ class StepOrganization extends Component {
 											/>
 										)}
 									/>
-									<ErrorMessage name="organization.cnpj" component={Error} />
+									<ErrorMessage name="internship.organization.document_number" component={Error} />
 								</Label>
 							</Col>
 							<Col>
 								<Label>
 									Nome<span>*</span>
 									<Field
-										name="organization.organization_name"
+										name="internship.organization.organization_name"
 										onBlur={(e) => {
 											handleBlur(e);
 											saveChanges(values);
 										}}
 										disabled={JSON.stringify(values.organizationSelected) !== '{}'}
 									/>
-									<ErrorMessage name="organization.organization_name" component={Error} />
+									<ErrorMessage name="internship.organization.organization_name" component={Error} />
 								</Label>
 							</Col>
 						</Row>
@@ -218,7 +335,7 @@ class StepOrganization extends Component {
 								<Label>
 									Telefone 1<span>*</span>
 									<Field
-										name="organization.phone1"
+										name="internship.organization.phone1"
 										render={({ field }) => (
 											<InputMask
 												{...field}
@@ -237,14 +354,14 @@ class StepOrganization extends Component {
 											/>
 										)}
 									/>
-									<ErrorMessage name="organization.phone1" component={Error} />
+									<ErrorMessage name="internship.organization.phone1" component={Error} />
 								</Label>
 							</Col>
 							<Col>
 								<Label>
 									Telefone 2
 									<Field
-										name="organization.phone2"
+										name="internship.organization.phone2"
 										render={({ field }) => (
 											<InputMask
 												{...field}
@@ -269,7 +386,7 @@ class StepOrganization extends Component {
 								<Label>
 									FAX
 									<Field
-										name="organization.fax"
+										name="internship.organization.fax"
 										render={({ field }) => (
 											<InputMask
 												{...field}
@@ -296,7 +413,7 @@ class StepOrganization extends Component {
 								<Label>
 									CEP<span>*</span>
 									<Field
-										name="organization.zipcode"
+										name="internship.organization.zipcode"
 										render={({ field }) => (
 											<InputMask
 												{...field}
@@ -307,9 +424,7 @@ class StepOrganization extends Component {
 													field.onBlur(e);
 													setFieldValue(
 														field.name,
-														field.value.match(/\d+/g).length
-															? field.value.match(/\d+/g).join('')
-															: ''
+														field.value.length > 0 ? field.value.match(/\d+/g).join('') : ''
 													);
 													saveChanges(values);
 												}}
@@ -318,7 +433,7 @@ class StepOrganization extends Component {
 											/>
 										)}
 									/>
-									<ErrorMessage name="organization.zipcode" component={Error} />
+									<ErrorMessage name="internship.organization.zipcode" component={Error} />
 								</Label>
 							</Col>
 						</Row>
@@ -327,7 +442,7 @@ class StepOrganization extends Component {
 								<Label>
 									Logradouro<span>*</span>
 									<Field
-										name="organization.street"
+										name="internship.organization.street"
 										onBlur={(e) => {
 											handleBlur(e);
 											saveChanges(values);
@@ -335,14 +450,14 @@ class StepOrganization extends Component {
 										disabled={JSON.stringify(values.organizationSelected) !== '{}'}
 										tabIndex="-1"
 									/>
-									<ErrorMessage name="organization.street" component={Error} />
+									<ErrorMessage name="internship.organization.street" component={Error} />
 								</Label>
 							</Col>
 							<Col width="25%">
 								<Label>
 									Complemento
 									<Field
-										name="organization.complement"
+										name="internship.organization.complement"
 										onBlur={(e) => {
 											handleBlur(e);
 											saveChanges(values);
@@ -355,17 +470,17 @@ class StepOrganization extends Component {
 								<Label>
 									Número<span>*</span>
 									<Field
-										name="organization.street_number"
+										name="internship.organization.street_number"
 										disabled={JSON.stringify(values.organizationSelected) !== '{}'}
 									/>
-									<ErrorMessage name="organization.street_number" component={Error} />
+									<ErrorMessage name="internship.organization.street_number" component={Error} />
 								</Label>
 							</Col>
 							<Col width="18%">
 								<Label>
 									Cidade<span>*</span>
 									<Field
-										name="organization.city"
+										name="internship.organization.city"
 										onBlur={(e) => {
 											handleBlur(e);
 											saveChanges(values);
@@ -373,14 +488,14 @@ class StepOrganization extends Component {
 										disabled={JSON.stringify(values.organizationSelected) !== '{}'}
 										tabIndex="-1"
 									/>
-									<ErrorMessage name="organization.city" component={Error} />
+									<ErrorMessage name="internship.organization.city" component={Error} />
 								</Label>
 							</Col>
 							<Col width="10%">
 								<Label>
 									UF<span>*</span>
 									<Field
-										name="organization.state"
+										name="internship.organization.state"
 										onBlur={(e) => {
 											handleBlur(e);
 											saveChanges(values);
@@ -388,63 +503,63 @@ class StepOrganization extends Component {
 										disabled={JSON.stringify(values.organizationSelected) !== '{}'}
 										tabIndex="-1"
 									/>
-									<ErrorMessage name="organization.state" component={Error} />
+									<ErrorMessage name="internship.organization.state" component={Error} />
 								</Label>
 							</Col>
 						</Row>
-						{values.type === 1 && (
+						{values.internship.type === 1 && (
 							<Fragment>
 								<Row bottom>
 									<Col width="25%">
 										<Label>
 											Curso<span>*</span>
 											<Field
-												name="course"
+												name="internship.course"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="course" component={Error} />
+											<ErrorMessage name="internship.course" component={Error} />
 										</Label>
 									</Col>
 									<Col width="25%">
 										<Label>
 											Nome da disciplina de estágio<span>*</span>
 											<Field
-												name="discipline"
+												name="internship.discipline"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="discipline" component={Error} />
+											<ErrorMessage name="internship.discipline" component={Error} />
 										</Label>
 									</Col>
 									<Col width="20%">
 										<Label>
 											Carga horária da disciplina<span>*</span>
 											<Field
-												name="workload"
+												name="internship.workload"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="workload" component={Error} />
+											<ErrorMessage name="internship.workload" component={Error} />
 										</Label>
 									</Col>
 									<Col width="30%">
 										<Label>
 											Semestre/Ano de realização da disciplina<span>*</span>
 											<Field
-												name="semYear"
+												name="internship.semYear"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="semYear" component={Error} />
+											<ErrorMessage name="internship.semYear" component={Error} />
 										</Label>
 									</Col>
 								</Row>
@@ -455,7 +570,7 @@ class StepOrganization extends Component {
 											onDrop={([ file, ...rest ]) => {
 												if (file) {
 													setFieldValue(
-														'documents.plan',
+														'internship.documents.plan',
 														Object.assign(file, {
 															preview: URL.createObjectURL(file)
 														})
@@ -468,7 +583,7 @@ class StepOrganization extends Component {
 												<DragDrop {...getRootProps()}>
 													<Document>Plano de Ensino</Document>
 													<Text>Arraste para cá ou</Text>
-													<Icon src={values.documents.plan ? Success : Upload} />
+													<Icon src={values.internship.documents.plan ? Success : Upload} />
 													<FileField {...getInputProps()} />
 													<Button>Procure no computador</Button>
 													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
@@ -476,7 +591,7 @@ class StepOrganization extends Component {
 												</DragDrop>
 											)}
 										</Dropzone>
-										<ErrorMessage name="documents.plan" component={FileError} />
+										<ErrorMessage name="internship.documents.plan" component={FileError} />
 									</Col>
 									<Col>
 										<Dropzone
@@ -484,7 +599,7 @@ class StepOrganization extends Component {
 											onDrop={([ file, ...rest ], e) => {
 												if (file) {
 													setFieldValue(
-														'documents.historic',
+														'internship.documents.historic',
 														Object.assign(file, {
 															preview: URL.createObjectURL(file)
 														})
@@ -497,7 +612,9 @@ class StepOrganization extends Component {
 												<DragDrop {...getRootProps()}>
 													<Document>Histórico Escolar</Document>
 													<Text>Arraste para cá ou</Text>
-													<Icon src={values.documents.historic ? Success : Upload} />
+													<Icon
+														src={values.internship.documents.historic ? Success : Upload}
+													/>
 													<FileField {...getInputProps()} />
 													<Button>Procure no computador</Button>
 													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
@@ -505,7 +622,7 @@ class StepOrganization extends Component {
 												</DragDrop>
 											)}
 										</Dropzone>
-										<ErrorMessage name="documents.historic" component={FileError} />
+										<ErrorMessage name="internship.documents.historic" component={FileError} />
 									</Col>
 									<Col>
 										<Dropzone
@@ -513,7 +630,7 @@ class StepOrganization extends Component {
 											onDrop={([ file, ...rest ]) => {
 												if (file) {
 													setFieldValue(
-														'documents.diploma',
+														'internship.documents.diploma',
 														Object.assign(file, {
 															preview: URL.createObjectURL(file)
 														})
@@ -526,7 +643,9 @@ class StepOrganization extends Component {
 												<DragDrop {...getRootProps()}>
 													<Document>Diploma</Document>
 													<Text>Arraste para cá ou</Text>
-													<Icon src={values.documents.diploma ? Success : Upload} />
+													<Icon
+														src={values.internship.documents.diploma ? Success : Upload}
+													/>
 													<FileField {...getInputProps()} />
 													<Button>Procure no computador</Button>
 													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
@@ -534,64 +653,64 @@ class StepOrganization extends Component {
 												</DragDrop>
 											)}
 										</Dropzone>
-										<ErrorMessage name="documents.diploma" component={FileError} />
+										<ErrorMessage name="internship.documents.diploma" component={FileError} />
 									</Col>
 								</Row>
 							</Fragment>
 						)}
-						{values.type === 2 && (
+						{values.internship.type === 2 && (
 							<Fragment>
 								<Row bottom>
 									<Col width="20%">
 										<Label>
 											Data de inicio<span>*</span>
 											<Field
-												name="course"
+												name="internship.startDate"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="course" component={Error} />
+											<ErrorMessage name="internship.startDate" component={Error} />
 										</Label>
 									</Col>
 									<Col width="20%">
 										<Label>
 											Data de término<span>*</span>
 											<Field
-												name="semYear"
+												name="internship.endDate"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="semYear" component={Error} />
+											<ErrorMessage name="internship.endDate" component={Error} />
 										</Label>
 									</Col>
 									<Col width="40%">
 										<Label>
 											Nome da disciplina de estágio<span>*</span>
 											<Field
-												name="discipline"
+												name="internship.discipline"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="discipline" component={Error} />
+											<ErrorMessage name="internship.discipline" component={Error} />
 										</Label>
 									</Col>
 									<Col width="20%">
 										<Label>
 											Carga horária da disciplina<span>*</span>
 											<Field
-												name="workload"
+												name="internship.workload"
 												onBlur={(e) => {
 													handleBlur(e);
 													saveChanges(values);
 												}}
 											/>
-											<ErrorMessage name="workload" component={Error} />
+											<ErrorMessage name="internship.workload" component={Error} />
 										</Label>
 									</Col>
 								</Row>
@@ -602,7 +721,7 @@ class StepOrganization extends Component {
 											onDrop={([ file, ...rest ]) => {
 												if (file) {
 													setFieldValue(
-														'documents.contract',
+														'internship.documents.contract',
 														Object.assign(file, {
 															preview: URL.createObjectURL(file)
 														})
@@ -615,7 +734,9 @@ class StepOrganization extends Component {
 												<DragDrop {...getRootProps()}>
 													<Document>Contrato de trabalho</Document>
 													<Text>Arraste para cá ou</Text>
-													<Icon src={values.documents.contract ? Success : Upload} />
+													<Icon
+														src={values.internship.documents.contract ? Success : Upload}
+													/>
 													<FileField {...getInputProps()} />
 													<Button>Procure no computador</Button>
 													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
@@ -623,7 +744,7 @@ class StepOrganization extends Component {
 												</DragDrop>
 											)}
 										</Dropzone>
-										<ErrorMessage name="documents.contract" component={FileError} />
+										<ErrorMessage name="internship.documents.contract" component={FileError} />
 									</Col>
 									<Col width="33%">
 										<Dropzone
@@ -631,7 +752,7 @@ class StepOrganization extends Component {
 											onDrop={([ file, ...rest ], e) => {
 												if (file) {
 													setFieldValue(
-														'documents.permit',
+														'internship.documents.permit',
 														Object.assign(file, {
 															preview: URL.createObjectURL(file)
 														})
@@ -644,7 +765,7 @@ class StepOrganization extends Component {
 												<DragDrop {...getRootProps()}>
 													<Document>Carteira de trabalho</Document>
 													<Text>Arraste para cá ou</Text>
-													<Icon src={values.documents.permit ? Success : Upload} />
+													<Icon src={values.internship.documents.permit ? Success : Upload} />
 													<FileField {...getInputProps()} />
 													<Button>Procure no computador</Button>
 													<Accepted>Arquivos aceitos: pdf, jpg, png, bmp</Accepted>
@@ -652,7 +773,7 @@ class StepOrganization extends Component {
 												</DragDrop>
 											)}
 										</Dropzone>
-										<ErrorMessage name="documents.permit" component={FileError} />
+										<ErrorMessage name="internship.documents.permit" component={FileError} />
 									</Col>
 								</Row>
 							</Fragment>
